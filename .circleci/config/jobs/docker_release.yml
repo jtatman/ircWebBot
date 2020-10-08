@@ -3,6 +3,12 @@ docker:
 environment:
   REGISTRY: smither/irc-web-bot
 steps:
+  - slack/notify:
+      channel: circleci
+      color: '#42e2f4'
+      mentions: 'tatman'
+      message: "pushing docker image to registry... for $CIRCLE_PROJECT_REPONAME"
+      webhook: webhook
   - attach_workspace:
       at: ~/ircWebBot
   - setup_remote_docker:

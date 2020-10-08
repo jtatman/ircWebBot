@@ -1,5 +1,8 @@
 version: 2.1
 
+orbs:
+  slack: circleci/slack@3.4.2
+
 commands: {{commands}}
 
 jobs: {{jobs}}
@@ -22,6 +25,9 @@ workflows:
             branches:
               only:
                 - master
+      - slack/approval-notification:
+          message: Pending approval
+          webhook: webhook
       - release_approval:
           type: approval
           requires:

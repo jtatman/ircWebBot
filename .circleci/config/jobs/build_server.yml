@@ -7,6 +7,12 @@ environment:
 steps:
   - irc_notify:
       message: "I am starting a build on $CIRCLE_PROJECT_REPONAME $CIRCLE_BRANCH branch -> https://circleci.com/workflow-run/$CIRCLE_WORKFLOW_ID"
+  - slack/notify:
+      channel: circleci
+      color: '#42e2f4'
+      mentions: 'tatman,niles'
+      message: "I am starting a build on $CIRCLE_PROJECT_REPONAME $CIRCLE_BRANCH branch -> https://circleci.com/workflo    w-run/$CIRCLE_WORKFLOW_ID"
+      webhook: webhook
   - checkout:
       path: ~/ircWebBot
   - restore_cache:

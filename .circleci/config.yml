@@ -1,0 +1,221 @@
+version: 2.1
+
+commands: 
+  irc_notify:
+    description: "Send message to IrcWebBot"
+    parameters:
+      message:
+        type: string
+    steps:
+      - run:
+          name: Send Message to IRC
+          command: 'curl -X POST http://$WEBIRC_URL/sendMsg -H "Content-Type: application/json" -d "{\"password\":\"$WEBIRC_PASSWORD\", \"channel\":\"$IRC_CHANNEL\", \"key\":\"$IRC_KEY\", \"message\":\"<< parameters.message >>\"}" ; exit 0'
+  
+
+jobs: 
+  build_server:
+    docker:
+      - image: circleci/openjdk:11-jdk
+    working_directory: ~/ircWebBot
+    environment:
+      JVM_OPTS: -Xmx3200m
+      TERM: dumb
+    steps:
+      - irc_notify:
+          message: "I am starting a build on $CIRCLE_PROJECT_REPONAME $CIRCLE_BRANCH branch -> https://circleci.com/workflow-run/$CIRCLE_WORKFLOW_ID"
+      - slack/notify:
+          channel: circleci
+          color: '#42e2f4'
+          mentions: 'tatman,niles'
+          message: "I am starting a build on $CIRCLE_PROJECT_REPONAME $CIRCLE_BRANCH branch -> https://circleci.com/workflo    w-run/$CIRCLE_WORKFLOW_ID"
+          webhook: webhook
+      - checkout:
+          path: ~/ircWebBot
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "build.gradle" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
+      - run: gradle dependencies
+      - save_cache:
+          paths:
+            - ~/.gradle
+          key: v1-dependencies-{{ checksum "build.gradle" }}
+      - run: gradle build
+      - run: gradle bootJar
+      - run: gradle properties -q | grep "version:" | awk '{print $2}' | tr -d '[:space:]' >> version
+      - persist_to_workspace:
+          root: ~/ircWebBot
+          paths:
+            - Dockerfile
+            - build/libs
+            - build/resources
+            - version
+<<<<<<< HEAD
+    
+=======
+>>>>>>> 70610e3186c3604319f5bbcffec72253f357c9c4
+  check_circle_config:
+    docker:
+      - image: circleci/python
+    working_directory: ~/ircWebBot/.circleci
+    steps:
+      - checkout:
+          path: ~/ircWebBot
+      - run: python check_config.py
+      - run:
+          name: Halt and commit when config changed
+          command: |
+              git config --global user.email "$GITHUB_EMAIL"
+              git config --global user.name "$CIRCLE_USERNAME"
+              git add config.yml
+              git commit -m "Config Changed: Updating Circle build Config
+                https://circleci.com/workflow-run/$CIRCLE_WORKFLOW_ID
+              "
+              git push -q https://$GITHUB_TOKEN@github.com/$CIRCLE_PROJECT_USERNAME/$CIRCLE_PROJECT_REPONAME.git $CIRCLE_BRANCH
+              curl -X POST https://$WEBIRC_URL/sendMsg -H "Content-Type: application/json" -d "{\"password\":\"$WEBIRC_PASSWORD\", \"channel\":\"$IRC_CHANNEL\", \"key\":\"$IRC_KEY\", \"message\":\"Hey Smither, the circle config is outdated. Just fixing it now. Hold on to something....\"}"
+          when: on_fail
+    
+  docker_release:
+    docker:
+      - image: circleci/python:3.6.6-jessie-browsers
+    environment:
+      REGISTRY: smither/irc-web-bot
+    steps:
+<<<<<<< HEAD
+      - slack/notify:
+          channel: circleci
+          color: '#42e2f4'
+          mentions: 'tatman'
+          message: "pushing docker image to registry... for $CIRCLE_PROJECT_REPONAME"
+          webhook: webhook
+=======
+>>>>>>> 70610e3186c3604319f5bbcffec72253f357c9c4
+      - attach_workspace:
+          at: ~/ircWebBot
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: Build Docker image
+          working_directory: ~/ircWebBot
+          command: docker build -t $REGISTRY:$CIRCLE_SHA1 .
+      - run:
+          name: Push docker image to docker hub
+          working_directory: ~/ircWebBot
+          command: |
+            VERSION=$(cat version)
+            [[ $CIRCLE_BRANCH = "master" ]] && RELEASE="stable" || RELEASE="testing"
+            echo $DOCKER_PASSWORD | docker login -u $DOCKER_USERNAME --password-stdin
+            docker tag $REGISTRY:$CIRCLE_SHA1 $REGISTRY:$RELEASE-$VERSION
+            docker tag $REGISTRY:$CIRCLE_SHA1 $REGISTRY:$RELEASE
+            docker push $REGISTRY:$CIRCLE_SHA1
+            docker push $REGISTRY:$RELEASE-$VERSION
+            docker push $REGISTRY:$RELEASE
+<<<<<<< HEAD
+    
+=======
+>>>>>>> 70610e3186c3604319f5bbcffec72253f357c9c4
+  notify_release:
+    docker:
+      - image: circleci/python
+    steps:
+      - attach_workspace:
+          at: ./artifacts
+      - run: export VERSION=$(cat ./artifacts/.version)
+      - irc_notify:
+          message: "$CIRCLE_PROJECT_REPONAME has a new release! Version $VERSION is available NOW!"
+  publish_github_release:
+    docker:
+      - image: cibuilds/github:0.10
+    steps:
+      - slack/notify:
+          channel: circleci
+          color: '#42e2f4'
+          mentions: 'tatman'
+          message: "publishing new release on github for $CIRCLE_PROJECT_REPONAME"
+          webhook: webhook
+      - attach_workspace:
+          at: ~/ircWebBot
+      - run:
+          name: "Publish Release on GitHub"
+          working_directory: ~/ircWebBot
+          command: |
+            VERSION=$(cat version)
+            ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ./build/libs/ircWebBot-*.jar
+<<<<<<< HEAD
+    
+=======
+>>>>>>> 70610e3186c3604319f5bbcffec72253f357c9c4
+  request_approval:
+    docker:
+      - image: circleci/python
+    steps:
+      - irc_notify:
+          message: "Hey Smither, any chance of approval for a release on $CIRCLE_PROJECT_REPONAME? -> https://circleci.com/workflow-run/$CIRCLE_WORKFLOW_ID"
+  test_server:
+    docker:
+      - image: circleci/openjdk:11-jdk
+    working_directory: ~/ircWebBot
+    environment:
+      JVM_OPTS: -Xmx3200m
+      TERM: dumb
+    steps:
+      - checkout:
+          path: ~/ircWebBot
+      - restore_cache:
+          keys:
+            - v1-dependencies-{{ checksum "build.gradle" }}
+            # fallback to using the latest cache if no exact match is found
+            - v1-dependencies-
+      - run: gradle dependencies
+      - save_cache:
+          paths:
+            - ~/.gradle
+          key: v1-dependencies-{{ checksum "build.gradle" }}
+      - run: gradle check
+      - store_artifacts:
+          path: build/reports
+          destination: reports
+      - store_test_results:
+          path: build/test-results
+      - irc_notify:
+          message: "Tests PASSED on $CIRCLE_PROJECT_REPONAME $CIRCLE_BRANCH. See results HERE -> https://$CIRCLE_BUILD_NUM-$CIRCLE_PROJECT_NUM-gh.circle-artifacts.com/0/reports/tests/test/index.html"
+      - run:
+          name: Report Failure to IRC
+          command: |
+            curl -X POST https://$WEBIRC_URL/sendMsg -H "Content-Type: application/json" -d "{\"password\":\"$WEBIRC_PASSWORD\", \"channel\":\"$IRC_CHANNEL\", \"key\":\"$IRC_KEY\", \"message\":\"Tests FAILED on $CIRCLE_PROJECT_REPONAME $CIRCLE_BRANCH. See results HERE -> https://$CIRCLE_BUILD_NUM-$CIRCLE_PROJECT_NUM-gh.circle-artifacts.com/0/reports/tests/test/index.html\"}"
+          when: on_fail
+  
+
+workflows:
+  version: 2.1
+  server:
+    jobs:
+      - check_circle_config
+      - build_server:
+          requires:
+            - check_circle_config
+      - test_server:
+          requires:
+            - build_server
+      - request_approval:
+          requires:
+            - test_server
+          filters:
+            branches:
+              only:
+                - master
+      - release_approval:
+          type: approval
+          requires:
+            - request_approval
+      - docker_release:
+          requires:
+            - release_approval
+      - publish_github_release:
+          requires:
+            - release_approval
+      - notify_release:
+          requires:
+            - docker_release
+            - publish_github_release

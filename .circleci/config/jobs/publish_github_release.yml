@@ -1,6 +1,12 @@
 docker:
   - image: cibuilds/github:0.10
 steps:
+  - slack/notify:
+      channel: circleci
+      color: '#42e2f4'
+      mentions: 'tatman'
+      message: "publishing new release on github for $CIRCLE_PROJECT_REPONAME"
+      webhook: webhook
   - attach_workspace:
       at: ~/ircWebBot
   - run:

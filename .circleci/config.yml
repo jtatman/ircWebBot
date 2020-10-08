@@ -26,9 +26,6 @@ jobs:
     steps:
       - irc_notify:
           message: "I am starting a build on $CIRCLE_PROJECT_REPONAME $CIRCLE_BRANCH branch -> https://circleci.com/workflow-run/$CIRCLE_WORKFLOW_ID"
-      - slack/approval-notification:
-          message: "I am starting a build on $CIRCLE_PROJECT_REPONAME $CIRCLE_BRANCH branch -> https://circleci.com/workflow-run/$CIRCLE_WORKFLOW_ID"
-          webhook: webhook
       - checkout:
           path: ~/ircWebBot
       - restore_cache:
@@ -83,7 +80,7 @@ jobs:
     docker:
       - image: circleci/python:3.6.6-jessie-browsers
     environment:
-      REGISTRY: smither/irc-web-bot
+      REGISTRY: jtatman/irc-web-bot
     steps:
       - slack/notify:
           channel: circleci
@@ -121,6 +118,13 @@ jobs:
       - run: export VERSION=$(cat ./artifacts/.version)
       - irc_notify:
           message: "$CIRCLE_PROJECT_REPONAME has a new release! Version $VERSION is available NOW!"
+       - slack/notify:
+          channel: circleci
+          color: '#42e2f4'
+          mentions: 'tatman,niles'
+          message: "$CIRCLE_PROJECT_REPONAME has a new release! Version $VERSION is available NOW!"
+          webhook: webhook
+
   publish_github_release:
     docker:
       - image: cibuilds/github:0.10
@@ -132,7 +136,13 @@ jobs:
           working_directory: ~/ircWebBot
           command: |
             VERSION=$(cat version)
-            ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ./build/libs/ircWebBot-*.jar
+            ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ./build/libs/ircWebBot-*.jar 
+       - slack/notify:
+          channel: circleci
+          color: '#42e2f4'
+          mentions: 'tatman,niles'
+          message: "$CIRCLE_PROJECT_REPONAME release publishing on github"
+          webhook: webhook
   request_approval:
     docker:
       - image: circleci/python
@@ -192,6 +202,9 @@ workflows:
             branches:
               only:
                 - master
+      - slack/approval-notification:
+          message: Pending approval
+          webhook: webhook
       - release_approval:
           type: approval
           requires:

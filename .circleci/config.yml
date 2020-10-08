@@ -118,7 +118,7 @@ jobs:
       - run: export VERSION=$(cat ./artifacts/.version)
       - irc_notify:
           message: "$CIRCLE_PROJECT_REPONAME has a new release! Version $VERSION is available NOW!"
-       - slack/notify:
+      - slack/notify:
           channel: circleci
           color: '#42e2f4'
           mentions: 'tatman,niles'
@@ -137,7 +137,7 @@ jobs:
           command: |
             VERSION=$(cat version)
             ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ./build/libs/ircWebBot-*.jar 
-       - slack/notify:
+      - slack/notify:
           channel: circleci
           color: '#42e2f4'
           mentions: 'tatman,niles'

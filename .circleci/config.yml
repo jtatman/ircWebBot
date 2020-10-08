@@ -1,5 +1,8 @@
 version: 2.1
 
+orbs:
+  slack: circleci/slack@3.4.2
+
 commands: 
   irc_notify:
     description: "Send message to IrcWebBot"
@@ -51,10 +54,7 @@ jobs:
             - build/libs
             - build/resources
             - version
-<<<<<<< HEAD
     
-=======
->>>>>>> 70610e3186c3604319f5bbcffec72253f357c9c4
   check_circle_config:
     docker:
       - image: circleci/python
@@ -82,15 +82,12 @@ jobs:
     environment:
       REGISTRY: smither/irc-web-bot
     steps:
-<<<<<<< HEAD
       - slack/notify:
           channel: circleci
           color: '#42e2f4'
           mentions: 'tatman'
           message: "pushing docker image to registry... for $CIRCLE_PROJECT_REPONAME"
           webhook: webhook
-=======
->>>>>>> 70610e3186c3604319f5bbcffec72253f357c9c4
       - attach_workspace:
           at: ~/ircWebBot
       - setup_remote_docker:
@@ -111,10 +108,7 @@ jobs:
             docker push $REGISTRY:$CIRCLE_SHA1
             docker push $REGISTRY:$RELEASE-$VERSION
             docker push $REGISTRY:$RELEASE
-<<<<<<< HEAD
     
-=======
->>>>>>> 70610e3186c3604319f5bbcffec72253f357c9c4
   notify_release:
     docker:
       - image: circleci/python
@@ -142,10 +136,7 @@ jobs:
           command: |
             VERSION=$(cat version)
             ghr -t ${GITHUB_TOKEN} -u ${CIRCLE_PROJECT_USERNAME} -r ${CIRCLE_PROJECT_REPONAME} -c ${CIRCLE_SHA1} -delete ${VERSION} ./build/libs/ircWebBot-*.jar
-<<<<<<< HEAD
     
-=======
->>>>>>> 70610e3186c3604319f5bbcffec72253f357c9c4
   request_approval:
     docker:
       - image: circleci/python
@@ -205,6 +196,9 @@ workflows:
             branches:
               only:
                 - master
+      - slack/approval-notification:
+          message: Pending approval
+          webhook: webhook
       - release_approval:
           type: approval
           requires:
